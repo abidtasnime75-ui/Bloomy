@@ -1,0 +1,1961 @@
+import 'package:flutter/material.dart';
+import '../widgets/confirm_dialog.dart';
+import '../utils/constants.dart';
+
+class ActivityScreen extends StatelessWidget {
+  ActivityScreen({super.key});  // ✅ PAS de 'const' ici
+  
+  // ✅ Listes normales (pas const)
+  final List<Map<String, String>> today = [
+    {'time': '14:32', 'icon': '💧', 'text': 'Pompe activée', 'detail': '(Automatique - Sol sec)'},
+    {'time': '12:15', 'icon': '🌀', 'text': 'Ventilateur ON', 'detail': '(Automatique - Temp > 35°C)'},
+    {'time': '09:00', 'icon': '🔓', 'text': 'Porte ouverte', 'detail': 'par "Asma" (RFID)'},
+    {'time': '08:45', 'icon': '⚙️', 'text': 'Mode Vacances activé'},
+  ];
+  
+  final List<Map<String, String>> yesterday = [
+    {'time': '18:20', 'icon': '💧', 'text': 'Pompe activée', 'detail': '(Manuel - via App)'},
+    {'time': '16:00', 'icon': '🔔', 'text': 'Alerte : Température critique', 'detail': '(37.2°C)'},
+    {'time': '10:30', 'icon': '🔓', 'text': 'Porte ouverte', 'detail': 'par "Ahmed" (RFID)'},
+  ];
+  
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('← Journal d\'Activité'),
+        leading: IconButton(icon: const Icon(Icons.arrow_back), onPressed: () => Navigator.pop(context)),
+        actions: [
+          PopupMenuButton<String>(
+            icon: const Icon(Icons.filter_list),
+            onSelected: (String? value) {},
+            itemBuilder: (ctx) => ['Toutes', 'Alertes', 'Contrôles', 'Accès']
+                .map((f) => PopupMenuItem(value: f, child: Text(f)))
+                .toList(),
+          ),
+        ],
+      ),
+      body: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Row(
+              children: [
+                const Icon(Icons.search, size: 20, color: AppConstants.textSecondary),
+                const SizedBox(width: 8),
+                Text('Filtrer :', style: TextStyle(color: Colors.grey[600])),
+                const SizedBox(width: 8),
+                DropdownButton<String>(
+                  value: 'Toutes',
+                  underline: const SizedBox(),
+                  items: ['Toutes', 'Alertes', 'Contrôles', 'Accès']
+                      .map((f) => DropdownMenuItem(value: f, child: Text(f)))
+                      .toList(),
+                  onChanged: (String? newValue) {},
+                ),
+              ],
+            ),
+          ),
+          Expanded(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildDateHeader('📅 AUJOURD\'HUI'),
+                  ...today.map((act) => _buildActivityItem(act)),
+                  const SizedBox(height: 24),
+                  _buildDateHeader('📅 HIER'),
+                  ...yesterday.map((act) => _buildActivityItem(act)),
+                ],
+              ),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: () => ConfirmDialog.show(
+                      context: context,
+                      title: '⚠️ CONFIRMATION',
+                      message: 'Effacer tout l\'historique ?',
+                      confirmText: '✅ EFFACER',
+                      isDestructive: true,
+                      onConfirm: () {
+                        Navigator.pop(context);
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('🗑️ Historique effacé !')),
+                        );
+                      },
+                    ),
+                    icon: const Icon(Icons.delete_outline),
+                    label: const Text('EFFACER'),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: ElevatedButton.icon(
+                    onPressed: () => ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('📥 Export PDF à implémenter')),
+                    ),
+                    icon: const Icon(Icons.picture_as_pdf),
+                    label: const Text('EXPORTER'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppConstants.primaryGreen,
+                      foregroundColor: Colors.white,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+  
+  Widget _buildDateHeader(String title) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 12),
+      child: Text(
+        title,
+        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppConstants.primaryGreen),
+      ),
+    );
+  }
+  
+  Widget _buildActivityItem(Map<String, String> act) {
+    return Card(
+      margin: const EdgeInsets.only(bottom: 8),
+      child: ListTile(
+        leading: Text(act['time']!, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
+        title: RichText(
+          text: TextSpan(
+            style: const TextStyle(color: AppConstants.textPrimary),
+            children: [
+              TextSpan(text: '${act['icon']} ${act['text']}', style: const TextStyle(fontWeight: FontWeight.w500)),
+              if (act['detail'] != null) TextSpan(text: ' ${act['detail']}', style: TextStyle(color: Colors.grey[600])),
+            ],
+          ),
+        ),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      ),
+    );
+  }
+}
+import 'package:flutter/material.dart';
+import '../widgets/confirm_dialog.dart';
+import '../utils/constants.dart';
+
+class ControlScreen extends StatefulWidget {  // ✅ Classe publique (pas de _)
+  const ControlScreen({super.key});
+  
+  @override
+  State<ControlScreen> createState() => _ControlScreenState();
+}
+
+class _ControlScreenState extends State<ControlScreen> {
+  bool pumpOn = false, fanOn = false, ledOn = false, vacationMode = false;
+  
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('← Contrôle Manuel'),
+        leading: IconButton(icon: const Icon(Icons.arrow_back), onPressed: () => Navigator.pop(context)),
+      ),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text('Activez les actionneurs manuellement', style: TextStyle(fontSize: 15, color: Colors.grey[600])),
+            const SizedBox(height: 24),
+            
+            // 💧 Pompe
+            _buildSectionTitle('💧 POMPE D\'ARROSAGE'),
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('État actuel : ${pumpOn ? '✅ ON' : '❌ OFF'}', style: const TextStyle(fontWeight: FontWeight.w500)),
+                    const SizedBox(height: 8),
+                    _buildDetailRow('Durée', '10 secondes'),
+                    _buildDetailRow('Consommation', '~5W'),
+                    const SizedBox(height: 16),
+                    ElevatedButton(
+                      onPressed: () => _confirmPump(),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: pumpOn ? Colors.red : Colors.blue,
+                        foregroundColor: Colors.white,
+                      ),
+                      child: Text(pumpOn ? 'DÉSACTIVER' : 'ACTIVER MANUELLEMENT'),
+                    ),
+                    if (!pumpOn) Padding(
+                      padding: const EdgeInsets.only(top: 8),
+                      child: Text('⚠️ Confirmation requise', style: TextStyle(fontSize: 12, color: Colors.orange[700])),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 20),
+            
+            // 🌀 Ventilateur
+            _buildSectionTitle('🌀 VENTILATEUR'),
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('État actuel : ${fanOn ? '✅ ON' : '❌ OFF'}', style: const TextStyle(fontWeight: FontWeight.w500)),
+                    const SizedBox(height: 8),
+                    _buildDetailRow('Température actuelle', '24.5°C'),
+                    _buildDetailRow('Seuil auto', '35°C'),
+                    const SizedBox(height: 16),
+                    ElevatedButton(
+                      onPressed: () => setState(() => fanOn = !fanOn),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: fanOn ? Colors.red : Colors.teal,
+                        foregroundColor: Colors.white,
+                      ),
+                      child: Text(fanOn ? 'DÉSACTIVER' : 'ACTIVER'),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 20),
+            
+            // 💡 LEDs
+            _buildSectionTitle('💡 LEDs DE CROISSANCE'),
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('État actuel : ${ledOn ? '✅ ON' : '❌ OFF'}', style: const TextStyle(fontWeight: FontWeight.w500)),
+                    const SizedBox(height: 8),
+                    _buildDetailRow('Durée programmable', '6h'),
+                    const SizedBox(height: 16),
+                    ElevatedButton(
+                      onPressed: () => setState(() => ledOn = !ledOn),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: ledOn ? Colors.red : Colors.amber[700],
+                        foregroundColor: Colors.white,
+                      ),
+                      child: Text(ledOn ? 'DÉSACTIVER' : 'ACTIVER'),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 20),
+            
+            // 🏖️ Mode Vacances
+            _buildSectionTitle('🏖️ MODE VACANCES'),
+            Card(
+              color: vacationMode ? Colors.green[50] : null,
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('État : ${vacationMode ? '✅ ACTIVÉ' : '❌ DÉSACTIVÉ'}', style: const TextStyle(fontWeight: FontWeight.w500)),
+                    const SizedBox(height: 8),
+                    const Text('• Surveillance renforcée'),
+                    const Text('• Alertes fréquentes'),
+                    const SizedBox(height: 16),
+                    ElevatedButton(
+                      onPressed: _toggleVacationMode,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: vacationMode ? Colors.orange : Colors.green[700],
+                        foregroundColor: Colors.white,
+                      ),
+                      child: Text(vacationMode ? 'DÉSACTIVER' : 'ACTIVER LE MODE'),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            
+            const SizedBox(height: 32),
+            ElevatedButton.icon(
+              onPressed: _saveChanges,
+              icon: const Icon(Icons.save),
+              label: const Text('💾 ENREGISTRER LES MODIFICATIONS', style: TextStyle(fontSize: 15)),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppConstants.primaryGreen,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 16),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+  
+  Widget _buildSectionTitle(String title) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Text(
+        title,
+        style: const TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: AppConstants.primaryGreen),
+      ),
+    );
+  }
+  
+  Widget _buildDetailRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 2),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(label, style: TextStyle(color: Colors.grey[600])),
+          Text(value, style: const TextStyle(fontWeight: FontWeight.w500)),
+        ],
+      ),
+    );
+  }
+  
+  void _confirmPump() {
+    if (pumpOn) {
+      setState(() => pumpOn = false);
+      return;
+    }
+    ConfirmDialog.show(
+      context: context,
+      title: '⚠️ CONFIRMATION REQUISE',
+      message: 'Voulez-vous vraiment activer la pompe ?',
+      details: ['Durée prévue : 10 secondes', 'Consommation : ~5W', 'Dernier arrosage : Il y a 2h'],
+      confirmText: '✅ OUI, ACTIVER',
+      isDestructive: true,
+      onConfirm: () {
+        setState(() => pumpOn = true);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('💧 Pompe activée !'), backgroundColor: Colors.green),
+        );
+      },
+    );
+  }
+  
+  void _toggleVacationMode() {
+    if (vacationMode) {
+      setState(() => vacationMode = false);
+      return;
+    }
+    ConfirmDialog.show(
+      context: context,
+      title: '🏖️ MODE VACANCES',
+      message: 'Activer la surveillance renforcée ?',
+      details: ['• Fréquence de mesure ×5', '• Alertes push immédiates', '• Seuils de sécurité élargis', '• Rapport d\'activité généré'],
+      confirmText: '✅ ACTIVER',
+      onConfirm: () {
+        setState(() => vacationMode = true);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('🏖️ Mode vacances activé !'), backgroundColor: Colors.green),
+        );
+      },
+    );
+  }
+  
+  void _saveChanges() {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('✅ Modifications enregistrées !'), backgroundColor: Colors.green),
+    );
+  }
+}
+import 'package:flutter/material.dart';
+import '../widgets/sensor_card.dart';
+import '../widgets/actuator_card.dart';
+import '../widgets/confirm_dialog.dart';
+import '../utils/constants.dart';
+
+class DashboardScreen extends StatefulWidget {
+  const DashboardScreen({super.key});
+  
+  @override
+  State<DashboardScreen> createState() => _DashboardScreenState();
+}
+
+class _DashboardScreenState extends State<DashboardScreen> {
+  int _currentIndex = 0;
+  
+  // 📊 Données simulées des capteurs (à remplacer par API ESP32)
+  final Map<String, Map<String, dynamic>> sensors = {
+    'temperature': {
+      'value': 24.5,
+      'unit': '°C',
+      'status': 'Normal',
+      'threshold': '< 35°C',
+      'icon': Icons.thermostat,
+      'color': Colors.orange,
+    },
+    'humidity': {
+      'value': 58,
+      'unit': '%',
+      'status': 'Optimal',
+      'threshold': '40-70%',
+      'icon': Icons.water_drop,
+      'color': Colors.blue,
+    },
+    'soil': {
+      'value': 65,
+      'unit': '%',
+      'status': 'Bon',
+      'threshold': '> 30%',
+      'icon': Icons.grass,
+      'color': Colors.brown,
+    },
+    'light': {
+      'value': 420,
+      'unit': 'Lux',
+      'status': 'Suffisant',
+      'threshold': null,
+      'icon': Icons.wb_sunny,
+      'color': Colors.amber,
+    },
+  };
+  
+  // 🎛️ État des actionneurs
+  final Map<String, bool> actuators = {
+    'pump': false,
+    'fan': false,
+    'led': false,
+  };
+  
+  // 🔄 Rafraîchir les données (simulation)
+  void _refreshData() {
+    setState(() {
+      sensors['temperature']!['value'] = 22 + (DateTime.now().second % 10) + 0.5;
+      sensors['humidity']!['value'] = 50 + (DateTime.now().second % 30);
+      sensors['soil']!['value'] = 40 + (DateTime.now().second % 40);
+      sensors['light']!['value'] = 300 + (DateTime.now().second % 600);
+    });
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('🔄 Données mises à jour !'), backgroundColor: Colors.green, duration: Duration(seconds: 2)),
+    );
+  }
+  
+  // 🎛️ Basculer un actionneur
+  void _toggleActuator(String key) {
+    setState(() {
+      actuators[key] = !(actuators[key] ?? false);
+    });
+    
+    // Confirmation spéciale pour la pompe
+    if (key == 'pump' && actuators[key] == true) {
+      ConfirmDialog.show(
+        context: context,
+        title: '⚠️ CONFIRMATION REQUISE',
+        message: 'Voulez-vous vraiment activer la pompe ?',
+        details: [
+          'Durée prévue : 10 secondes',
+          'Consommation : ~5W',
+          'Dernier arrosage : Il y a 2h',
+        ],
+        confirmText: '✅ OUI, ACTIVER',
+        cancelText: '❌ ANNULER',
+        isDestructive: true,
+        onConfirm: () {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('💧 Pompe activée !'), backgroundColor: Colors.green),
+          );
+        },
+      );
+    } else {
+      final names = {'pump': 'Pompe', 'fan': 'Ventilateur', 'led': 'LEDs'};
+      final state = actuators[key]! ? 'activé' : 'désactivé';
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('${names[key]} $state !'), backgroundColor: Colors.green),
+      );
+    }
+  }
+  
+  // 🚪 Ouvrir la porte (avec confirmation)
+  void _openDoor() {
+    ConfirmDialog.show(
+      context: context,
+      title: '🔐 SÉCURITÉ - OUVERTURE DE PORTE',
+      message: 'Ouvrir la porte de la serre ?',
+      details: [
+        '✓ Authentification requise',
+        '✓ Action journalisée',
+        '✓ Fermeture auto dans 5s',
+      ],
+      confirmText: '✅ OUVRIR',
+      cancelText: '❌ NON',
+      onConfirm: () {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('🚪 Porte ouverte !'), backgroundColor: Colors.green),
+        );
+      },
+    );
+  }
+  
+  // 👤 Aller au profil
+  void _goToProfile() {
+    Navigator.pushNamed(context, '/profile');
+  }
+  
+  // 📊 Aller à l'historique
+  void _goToHistory() {
+    Navigator.pushNamed(context, '/history');
+  }
+  
+  // ⚙️ Aller aux paramètres
+  void _goToSettings() {
+    Navigator.pushNamed(context, '/settings');
+  }
+  
+  // 🎛️ Aller au contrôle manuel
+  void _goToControl() {
+    Navigator.pushNamed(context, '/control');
+  }
+  
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      // 🌿 Barre de Navigation Haut
+      appBar: AppBar(
+        title: const Text('🌿 Bloomy'),
+        centerTitle: true,
+        actions: [
+          // 👤 Icône profil
+          IconButton(
+            icon: const CircleAvatar(
+              backgroundColor: Colors.white24,
+              child: Icon(Icons.person, size: 20, color: Colors.white),
+            ),
+            onPressed: _goToProfile,
+            tooltip: 'Mon Profil',
+          ),
+          const SizedBox(width: 8),
+        ],
+      ),
+      
+      // 📱 Corps de l'écran
+      body: RefreshIndicator(
+        onRefresh: () async => _refreshData(),
+        child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              // 📊 Section Capteurs
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text(
+                    '📊 CAPTEURS',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppConstants.primaryGreen),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.refresh, size: 20),
+                    onPressed: _refreshData,
+                    tooltip: 'Rafraîchir',
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              
+              // Carte : Température
+              SensorCard(
+                icon: sensors['temperature']!['icon'],
+                title: 'TEMPÉRATURE',
+                value: sensors['temperature']!['value'].toStringAsFixed(1),
+                unit: sensors['temperature']!['unit'],
+                status: sensors['temperature']!['status'],
+                threshold: sensors['temperature']!['threshold'],
+                color: sensors['temperature']!['color'],
+              ),
+              
+              // Carte : Humidité Air
+              SensorCard(
+                icon: sensors['humidity']!['icon'],
+                title: 'HUMIDITÉ AIR',
+                value: sensors['humidity']!['value'].toStringAsFixed(1),
+                unit: sensors['humidity']!['unit'],
+                status: sensors['humidity']!['status'],
+                threshold: sensors['humidity']!['threshold'],
+                color: sensors['humidity']!['color'],
+              ),
+              
+              // Carte : Humidité Sol
+              SensorCard(
+                icon: sensors['soil']!['icon'],
+                title: 'HUMIDITÉ DU SOL',
+                value: sensors['soil']!['value'].toStringAsFixed(1),
+                unit: sensors['soil']!['unit'],
+                status: sensors['soil']!['status'],
+                threshold: sensors['soil']!['threshold'],
+                color: sensors['soil']!['color'],
+              ),
+              
+              // Carte : Luminosité
+              SensorCard(
+                icon: sensors['light']!['icon'],
+                title: 'LUMINOSITÉ',
+                value: sensors['light']!['value'].toStringAsFixed(0),
+                unit: sensors['light']!['unit'],
+                status: sensors['light']!['status'],
+                threshold: sensors['light']!['threshold'],
+                color: sensors['light']!['color'],
+              ),
+              
+              const SizedBox(height: 24),
+              
+              // 🎛️ Section Actionneurs
+              const Center(
+                child: Text(
+                  '──── ACTIONNEURS ────',
+                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppConstants.textSecondary),
+                ),
+              ),
+              const SizedBox(height: 12),
+              
+              // Actuateur : Pompe
+              ActuatorCard(
+                icon: Icons.water,
+                title: '💧 Pompe d\'Arrosage',
+                isOn: actuators['pump']!,
+                color: Colors.blue,
+                onToggle: () => _toggleActuator('pump'),
+              ),
+              
+              // Actuateur : Ventilateur
+              ActuatorCard(
+                icon: Icons.air,
+                title: '🌀 Ventilateur',
+                isOn: actuators['fan']!,
+                color: Colors.teal,
+                onToggle: () => _toggleActuator('fan'),
+              ),
+              
+              // Actuateur : LEDs
+              ActuatorCard(
+                icon: Icons.lightbulb,
+                title: '💡 LEDs Croissance',
+                isOn: actuators['led']!,
+                color: Colors.amber,
+                onToggle: () => _toggleActuator('led'),
+              ),
+              
+              const SizedBox(height: 20),
+              
+              // 🚪 Bouton Ouvrir la Porte
+              OutlinedButton.icon(
+                onPressed: _openDoor,
+                icon: const Icon(Icons.door_front_door, size: 20),
+                label: const Text('🚪 OUVRIR LA PORTE', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w500)),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: AppConstants.primaryGreen,
+                  side: const BorderSide(color: AppConstants.primaryGreen),
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                ),
+              ),
+              
+              const SizedBox(height: 20),
+              
+              // 🎛️ Bouton vers Contrôle Manuel
+              ElevatedButton.icon(
+                onPressed: _goToControl,
+                icon: const Icon(Icons.settings, size: 20),
+                label: const Text('🎛️ Contrôle Manuel Avancé', style: TextStyle(fontSize: 15)),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppConstants.darkGreen,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                ),
+              ),
+              
+              const SizedBox(height: 16),
+              
+              // 💡 Note informative
+              Card(
+                color: Colors.blue[50],
+                child: Padding(
+                  padding: const EdgeInsets.all(12),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.info_outline, color: Colors.blue, size: 20),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          'Données simulées pour le test. Connecte l\'ESP32 pour les données réelles !',
+                          style: TextStyle(fontSize: 12, color: Colors.blue[900]),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+      
+      // 🧭 Barre de Navigation Bas
+      bottomNavigationBar: BottomNavigationBar(
+        currentIndex: _currentIndex,
+        onTap: (index) {
+          setState(() => _currentIndex = index);
+          if (index == 1) _goToHistory();
+          if (index == 2) _goToSettings();
+          if (index == 3) _goToProfile();
+        },
+        type: BottomNavigationBarType.fixed,
+        selectedItemColor: AppConstants.primaryGreen,
+        unselectedItemColor: AppConstants.textSecondary,
+        items: const [
+          BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Accueil'),
+          BottomNavigationBarItem(icon: Icon(Icons.bar_chart), label: 'Historique'),
+          BottomNavigationBarItem(icon: Icon(Icons.settings), label: 'Paramètres'),
+          BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Profil'),
+        ],
+      ),
+    );
+  }
+}
+import 'package:flutter/material.dart';
+import '../widgets/custom_button.dart';
+import '../utils/constants.dart';
+import '../services/auth_service.dart';
+
+class ForgotPasswordScreen extends StatefulWidget {
+  const ForgotPasswordScreen({super.key});
+  
+  @override
+  State<ForgotPasswordScreen> createState() => _ForgotPasswordScreenState();
+}
+
+class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
+  final _formKey = GlobalKey<FormState>();
+  final _emailController = TextEditingController();
+  final _newPasswordController = TextEditingController();
+  final _confirmPasswordController = TextEditingController();
+  final _authService = AuthService();
+  bool _isLoading = false;
+  bool _obscureNewPassword = true;
+  bool _obscureConfirmPassword = true;
+  bool _emailSent = false;
+  
+  @override
+  void dispose() {
+    _emailController.dispose();
+    _newPasswordController.dispose();
+    _confirmPasswordController.dispose();
+    super.dispose();
+  }
+  
+  void _handleResetPassword() async {
+    if (!_formKey.currentState!.validate()) return;
+    
+    setState(() => _isLoading = true);
+    
+    final result = await _authService.resetPassword(
+      email: _emailController.text.trim(),
+      newPassword: _newPasswordController.text,
+    );
+    
+    if (mounted) {
+      setState(() => _isLoading = false);
+      
+      if (result['success'] == true) {
+        setState(() => _emailSent = true);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('✅ ${result['message']}'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('❌ ${result['message']}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+  
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: AppConstants.backgroundColor,
+      appBar: AppBar(
+        title: const Text('Mot de passe oublié'),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => Navigator.pop(context),
+        ),
+      ),
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(24),
+          child: _emailSent ? _buildSuccessView() : _buildFormView(),
+        ),
+      ),
+    );
+  }
+  
+  Widget _buildFormView() {
+    return Form(
+      key: _formKey,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const SizedBox(height: 20),
+          Center(
+            child: Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: AppConstants.warningOrange.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: const Icon(Icons.lock_reset, size: 48, color: AppConstants.warningOrange),
+            ),
+          ),
+          const SizedBox(height: 24),
+          const Text(
+            'Réinitialiser le mot de passe',
+            style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Entrez votre email et votre nouveau mot de passe',
+            style: TextStyle(color: Colors.grey[600]),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 32),
+          
+          // 📧 Email
+          TextFormField(
+            controller: _emailController,
+            keyboardType: TextInputType.emailAddress,
+            decoration: const InputDecoration(
+              labelText: 'Adresse email',
+              prefixIcon: Icon(Icons.email_outlined, color: AppConstants.warningOrange),
+            ),
+            validator: (value) {
+              if (value == null || value.isEmpty) return 'Email requis';
+              if (!value.contains('@')) return 'Email invalide';
+              return null;
+            },
+          ),
+          const SizedBox(height: 16),
+          
+          // 🔒 Nouveau mot de passe
+          TextFormField(
+            controller: _newPasswordController,
+            obscureText: _obscureNewPassword,
+            decoration: InputDecoration(
+              labelText: 'Nouveau mot de passe',
+              prefixIcon: const Icon(Icons.lock_outline, color: AppConstants.warningOrange),
+              suffixIcon: IconButton(
+                icon: Icon(_obscureNewPassword ? Icons.visibility_off : Icons.visibility),
+                onPressed: () => setState(() => _obscureNewPassword = !_obscureNewPassword),
+              ),
+            ),
+            validator: (value) {
+              if (value == null || value.isEmpty) return 'Mot de passe requis';
+              if (value.length < 6) return 'Minimum 6 caractères';
+              return null;
+            },
+          ),
+          const SizedBox(height: 16),
+          
+          // 🔒 Confirmer mot de passe
+          TextFormField(
+            controller: _confirmPasswordController,
+            obscureText: _obscureConfirmPassword,
+            decoration: InputDecoration(
+              labelText: 'Confirmer mot de passe',
+              prefixIcon: const Icon(Icons.lock_outline, color: AppConstants.warningOrange),
+              suffixIcon: IconButton(
+                icon: Icon(_obscureConfirmPassword ? Icons.visibility_off : Icons.visibility),
+                onPressed: () => setState(() => _obscureConfirmPassword = !_obscureConfirmPassword),
+              ),
+            ),
+            validator: (value) {
+              if (value == null || value.isEmpty) return 'Confirmation requise';
+              if (value != _newPasswordController.text) return 'Les mots de passe ne correspondent pas';
+              return null;
+            },
+          ),
+          const SizedBox(height: 32),
+          
+          // 🔘 RÉINITIALISER
+          CustomButton(
+            text: 'RÉINITIALISER',
+            onPressed: _handleResetPassword,
+            isLoading: _isLoading,
+            icon: Icons.lock_reset,
+          ),
+          const SizedBox(height: 24),
+          
+          // 🔗 Retour connexion
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('← Retour à la connexion'),
+          ),
+        ],
+      ),
+    );
+  }
+  
+  Widget _buildSuccessView() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        const SizedBox(height: 40),
+        Center(
+          child: Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: AppConstants.successGreen.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: const Icon(Icons.check_circle, size: 64, color: AppConstants.successGreen),
+          ),
+        ),
+        const SizedBox(height: 32),
+        const Text(
+          '✅ Mot de passe réinitialisé !',
+          style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+          textAlign: TextAlign.center,
+        ),
+        const SizedBox(height: 16),
+        Text(
+          'Votre mot de passe a été modifié avec succès. Vous pouvez maintenant vous connecter avec votre nouveau mot de passe.',
+          style: TextStyle(color: Colors.grey[600], height: 1.5),
+          textAlign: TextAlign.center,
+        ),
+        const SizedBox(height: 48),
+        CustomButton(
+          text: 'SE CONNECTER',
+          onPressed: () => Navigator.pop(context),
+          icon: Icons.login,
+        ),
+      ],
+    );
+  }
+}
+import 'package:flutter/material.dart';
+import 'package:fl_chart/fl_chart.dart';
+import '../utils/constants.dart';
+
+class HistoryScreen extends StatefulWidget {
+  const HistoryScreen({super.key});
+  @override
+  State<HistoryScreen> createState() => _HistoryScreenState();
+}
+
+class _HistoryScreenState extends State<HistoryScreen> {
+  String _selectedPeriod = '24h';
+  
+  List<FlSpot> get _tempData => [const FlSpot(0, 22), const FlSpot(4, 23), const FlSpot(8, 25), const FlSpot(12, 27), const FlSpot(16, 26), const FlSpot(20, 24), const FlSpot(24, 23)];
+  List<FlSpot> get _soilData => [const FlSpot(0, 55), const FlSpot(4, 58), const FlSpot(8, 62), const FlSpot(12, 65), const FlSpot(16, 63), const FlSpot(20, 60), const FlSpot(24, 58)];
+  
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('← Historique des Données'), leading: IconButton(icon: const Icon(Icons.arrow_back), onPressed: () => Navigator.pop(context))),
+      body: SingleChildScrollView(padding: const EdgeInsets.all(16), child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+        // Sélecteur période
+        Row(children: ['24h', '7 jours', '30 jours'].map((period) {
+          final isSelected = _selectedPeriod == period;
+          return Expanded(child: Padding(padding: const EdgeInsets.symmetric(horizontal: 4), child: FilterChip(label: Text(period), selected: isSelected, onSelected: (_) => setState(() => _selectedPeriod = period), selectedColor: AppConstants.primaryGreen.withValues(alpha: 0.2), checkmarkColor: AppConstants.primaryGreen)));
+        }).toList()),
+        const SizedBox(height: 24),
+        
+        // Graphique Température
+        _buildGraphTitle('🌡️ TEMPÉRATURE ($_selectedPeriod)'),
+        _buildLineChart(_tempData, '20', '40', '°C', Colors.orange),
+        const SizedBox(height: 24),
+        
+        // Graphique Humidité Sol
+        _buildGraphTitle('💧 HUMIDITÉ DU SOL ($_selectedPeriod)'),
+        _buildLineChart(_soilData, '0', '100', '%', Colors.brown),
+        const SizedBox(height: 24),
+        
+        // Graphique Humidité Air
+        _buildGraphTitle('💧 HUMIDITÉ AIR ($_selectedPeriod)'),
+        _buildLineChart(_soilData.map((s) => FlSpot(s.x, s.y * 0.9)).toList(), '0', '100', '%', Colors.blue),
+        
+        const SizedBox(height: 32),
+        Row(children: [
+          Expanded(child: OutlinedButton.icon(onPressed: () => ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('📥 Export PDF à implémenter'))), icon: const Icon(Icons.picture_as_pdf), label: const Text('EXPORTER PDF'))),
+          const SizedBox(width: 12),
+          Expanded(child: ElevatedButton.icon(onPressed: () => setState(() {}), icon: const Icon(Icons.refresh), label: const Text('ACTUALISER'), style: ElevatedButton.styleFrom(backgroundColor: AppConstants.primaryGreen))),
+        ]),
+      ])),
+    );
+  }
+  
+  Widget _buildGraphTitle(String title) => Padding(padding: const EdgeInsets.only(bottom: 12), child: Text(title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600)));
+  
+  Widget _buildLineChart(List<FlSpot> data, String minY, String maxY, String unit, Color color) {
+    return Card(child: Padding(padding: const EdgeInsets.all(16), child: SizedBox(height: 200, child: LineChart(LineChartData(
+      gridData: const FlGridData(show: true, drawVerticalLine: false),
+      titlesData: FlTitlesData(leftTitles: AxisTitles(sideTitles: SideTitles(showTitles: true, reservedSize: 40)), bottomTitles: AxisTitles(sideTitles: SideTitles(showTitles: true)), topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)), rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false))),
+      borderData: FlBorderData(show: true, border: Border.all(color: Colors.grey[300]!)),
+      lineBarsData: [LineChartBarData(spots: data, isCurved: true, color: color, barWidth: 3, dotData: const FlDotData(show: false), belowBarData: BarAreaData(show: true, color: color.withValues(alpha: 0.1)))],
+      minY: double.parse(minY), maxY: double.parse(maxY),
+    )))));
+  }
+}
+import 'package:flutter/material.dart';
+import '../widgets/custom_button.dart';
+import '../utils/constants.dart';
+import '../main.dart';
+import '../services/auth_service.dart';
+import 'register_screen.dart';
+import 'forgot_password_screen.dart';
+
+class LoginScreen extends StatefulWidget {
+  const LoginScreen({super.key});
+  
+  @override
+  State<LoginScreen> createState() => _LoginScreenState();
+}
+
+class _LoginScreenState extends State<LoginScreen> {
+  final _formKey = GlobalKey<FormState>();
+  final _emailController = TextEditingController();
+  final _passwordController = TextEditingController();
+  final _authService = AuthService();
+  bool _isLoading = false;
+  bool _obscurePassword = true;
+  
+  @override
+  void dispose() {
+    _emailController.dispose();
+    _passwordController.dispose();
+    super.dispose();
+  }
+  
+  void _handleLogin() async {
+    if (!_formKey.currentState!.validate()) return;
+    
+    setState(() => _isLoading = true);
+    
+    final result = await _authService.login(
+      email: _emailController.text.trim(),
+      password: _passwordController.text,
+    );
+    
+    if (mounted) {
+      setState(() => _isLoading = false);
+      
+      if (result['success'] == true) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('✅ ${result['message']}'),
+            backgroundColor: Colors.green,
+          ),
+        );
+        AppNavigator.goToDashboard(context);
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('❌ ${result['message']}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+  
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: AppConstants.backgroundColor,
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(24),
+          child: Form(
+            key: _formKey,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                const SizedBox(height: 60),
+                
+                // 🌿 LOGO BLOOMY (SANS CADRE)
+                Center(
+                  child: Column(
+                    children: [
+                      // Logo sans fond
+                      Image.asset(
+                        'assets/images/logo_bloomy.png',
+                        width: 200,  // ✅ Plus grand
+                        height: 200,
+                        fit: BoxFit.contain,
+                        errorBuilder: (context, error, stackTrace) {
+                          // Si le logo n'existe pas, afficher l'icône seule
+                          return const Icon(
+                            Icons.eco,
+                            size: 100,  // ✅ Plus grand
+                            color: AppConstants.primaryGreen,
+                          );
+                        },
+                      ),
+                      const SizedBox(height: 16),
+                      
+                      // Titre Bloomy
+                      const Text(
+                        'Bloomy',
+                        style: TextStyle(
+                          fontSize: 36,  // ✅ Plus grand
+                          fontWeight: FontWeight.bold,
+                          color: AppConstants.primaryGreen,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      
+                      // Sous-titre
+                      Text(
+                        'Gérez votre serre intelligente\nen toute simplicité',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: 15,
+                          color: Colors.grey[600],
+                          height: 1.4,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 60),  // ✅ Plus d'espace avant les champs
+                
+                // 📧 Champ Email
+                TextFormField(
+                  controller: _emailController,
+                  keyboardType: TextInputType.emailAddress,
+                  decoration: const InputDecoration(
+                    labelText: 'Adresse email',
+                    prefixIcon: Icon(Icons.email_outlined, color: AppConstants.primaryGreen),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.all(Radius.circular(12)),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.all(Radius.circular(12)),
+                      borderSide: BorderSide(color: Colors.grey),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.all(Radius.circular(12)),
+                      borderSide: BorderSide(color: AppConstants.primaryGreen, width: 2),
+                    ),
+                  ),
+                  validator: (value) {
+                    if (value == null || value.isEmpty) return 'Email requis';
+                    if (!value.contains('@')) return 'Email invalide';
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 16),
+                
+                // 🔒 Champ Mot de passe
+                TextFormField(
+                  controller: _passwordController,
+                  obscureText: _obscurePassword,
+                  decoration: InputDecoration(
+                    labelText: 'Mot de passe',
+                    prefixIcon: const Icon(Icons.lock_outline, color: AppConstants.primaryGreen),
+                    border: const OutlineInputBorder(
+                      borderRadius: BorderRadius.all(Radius.circular(12)),
+                    ),
+                    enabledBorder: const OutlineInputBorder(
+                      borderRadius: BorderRadius.all(Radius.circular(12)),
+                      borderSide: BorderSide(color: Colors.grey),
+                    ),
+                    focusedBorder: const OutlineInputBorder(
+                      borderRadius: BorderRadius.all(Radius.circular(12)),
+                      borderSide: BorderSide(color: AppConstants.primaryGreen, width: 2),
+                    ),
+                    suffixIcon: IconButton(
+                      icon: Icon(_obscurePassword ? Icons.visibility_off : Icons.visibility),
+                      onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
+                    ),
+                  ),
+                  validator: (value) {
+                    if (value == null || value.isEmpty) return 'Mot de passe requis';
+                    if (value.length < 6) return 'Minimum 6 caractères';
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 8),
+                
+                // 🔗 Mot de passe oublié
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: TextButton(
+                    onPressed: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const ForgotPasswordScreen()),
+                    ),
+                    child: const Text('Mot de passe oublié ?'),
+                  ),
+                ),
+                const SizedBox(height: 24),
+                
+                // 🔘 Bouton SE CONNECTER
+                CustomButton(
+                  text: 'SE CONNECTER',
+                  onPressed: _handleLogin,
+                  isLoading: _isLoading,
+                  icon: Icons.login,
+                ),
+                const SizedBox(height: 24),
+                
+                // 🔗 Séparateur
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Expanded(child: Divider(color: Colors.grey[300])),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 12),
+                      child: Text(
+                        'ou',
+                        style: TextStyle(color: Colors.grey[600]),
+                      ),
+                    ),
+                    Expanded(child: Divider(color: Colors.grey[300])),
+                  ],
+                ),
+                const SizedBox(height: 24),
+                
+                // 🔗 Pas encore de compte
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      'Pas encore de compte ?',
+                      style: TextStyle(color: Colors.grey[600]),
+                    ),
+                    TextButton(
+                      onPressed: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => const RegisterScreen()),
+                      ),
+                      child: const Text(
+                        'S\'inscrire',
+                        style: TextStyle(
+                          fontWeight: FontWeight.w600,
+                          color: AppConstants.primaryGreen,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 20),
+                
+                // 🔘 Bouton S'INSCRIRE
+                CustomButton(
+                  text: 'S\'INSCRIRE',
+                  onPressed: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const RegisterScreen()),
+                  ),
+                  isSecondary: true,
+                  icon: Icons.person_add,
+                ),
+                const SizedBox(height: 30),
+                
+                // Version
+                Text(
+                  'Bloomy v1.0.0',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: Colors.grey[400],
+                    fontSize: 12,
+                  ),
+                ),
+                const SizedBox(height: 20),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+import 'package:flutter/material.dart';
+import '../utils/constants.dart';
+import '../main.dart';
+import '../services/auth_service.dart';
+
+class ProfileScreen extends StatefulWidget {
+  const ProfileScreen({super.key});
+  
+  @override
+  State<ProfileScreen> createState() => _ProfileScreenState();
+}
+
+class _ProfileScreenState extends State<ProfileScreen> {
+  final _authService = AuthService();
+  final _nameController = TextEditingController();
+  final _phoneController = TextEditingController();
+  final _currentPasswordController = TextEditingController();
+  final _newPasswordController = TextEditingController();
+  bool _isLoading = false;
+  
+  @override
+  void initState() {
+    super.initState();
+    final user = _authService.currentUser;
+    if (user != null) {
+      _nameController.text = user.name;
+      _phoneController.text = user.phone;
+    }
+  }
+  
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _phoneController.dispose();
+    _currentPasswordController.dispose();
+    _newPasswordController.dispose();
+    super.dispose();
+  }
+  
+  void _handleUpdateProfile() async {
+    setState(() => _isLoading = true);
+    
+    final result = await _authService.updateProfile(
+      name: _nameController.text.trim(),
+      phone: _phoneController.text.trim(),
+    );
+    
+    if (mounted) {
+      setState(() => _isLoading = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(result['success'] ? '✅ ${result['message']}' : '❌ ${result['message']}'),
+          backgroundColor: result['success'] ? Colors.green : Colors.red,
+        ),
+      );
+    }
+  }
+  
+  void _handleChangePassword() async {
+    if (_newPasswordController.text.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('❌ Nouveau mot de passe requis'), backgroundColor: Colors.red),
+      );
+      return;
+    }
+    
+    setState(() => _isLoading = true);
+    
+    final result = await _authService.changePassword(
+      currentPassword: _currentPasswordController.text,
+      newPassword: _newPasswordController.text,
+    );
+    
+    if (mounted) {
+      setState(() => _isLoading = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(result['success'] ? '✅ ${result['message']}' : '❌ ${result['message']}'),
+          backgroundColor: result['success'] ? Colors.green : Colors.red,
+        ),
+      );
+      if (result['success']) {
+        _currentPasswordController.clear();
+        _newPasswordController.clear();
+      }
+    }
+  }
+  
+  void _handleLogout() {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('🚪 Déconnexion'),
+        content: const Text('Voulez-vous vraiment vous déconnecter ?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Annuler'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              Navigator.pop(ctx);
+              await _authService.logout();
+              if (mounted) AppNavigator.goToLogin(context);
+            },
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red, foregroundColor: Colors.white),
+            child: const Text('Déconnecter'),
+          ),
+        ],
+      ),
+    );
+  }
+  
+  @override
+  Widget build(BuildContext context) {
+    final user = _authService.currentUser;
+    
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('← Mon Profil'),
+        leading: IconButton(icon: const Icon(Icons.arrow_back), onPressed: () => Navigator.pop(context)),
+      ),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            const SizedBox(height: 20),
+            CircleAvatar(
+              radius: 45,
+              backgroundColor: AppConstants.primaryGreen.withValues(alpha: 0.15),
+              child: Text(
+                user?.name.isNotEmpty == true ? user!.name[0].toUpperCase() : 'B',
+                style: const TextStyle(fontSize: 40, fontWeight: FontWeight.bold, color: AppConstants.primaryGreen),
+              ),
+            ),
+            const SizedBox(height: 16),
+            Text(user?.name ?? 'Utilisateur', style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
+            Text(user?.email ?? '', style: TextStyle(color: Colors.grey[600])),
+            const SizedBox(height: 32),
+            
+            // ℹ️ Informations Personnelles
+            _buildSectionTitle('ℹ️ INFORMATIONS PERSONNELLES'),
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  children: [
+                    TextFormField(
+                      controller: _nameController,
+                      decoration: const InputDecoration(labelText: 'Nom complet', prefixIcon: Icon(Icons.person)),
+                    ),
+                    const SizedBox(height: 12),
+                    TextFormField(
+                      controller: _phoneController,
+                      decoration: const InputDecoration(labelText: 'Téléphone', prefixIcon: Icon(Icons.phone)),
+                    ),
+                    const SizedBox(height: 16),
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child: ElevatedButton.icon(
+                        onPressed: _isLoading ? null : _handleUpdateProfile,
+                        icon: _isLoading ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2)) : const Icon(Icons.save),
+                        label: const Text('💾 MODIFIER'),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 24),
+            
+            // 🔒 Sécurité
+            _buildSectionTitle('🔒 SÉCURITÉ'),
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text('Changer mot de passe :', style: TextStyle(fontWeight: FontWeight.w600)),
+                    const SizedBox(height: 12),
+                    TextFormField(
+                      controller: _currentPasswordController,
+                      decoration: const InputDecoration(labelText: 'Mot de passe actuel', prefixIcon: Icon(Icons.lock)),
+                      obscureText: true,
+                    ),
+                    const SizedBox(height: 12),
+                    TextFormField(
+                      controller: _newPasswordController,
+                      decoration: const InputDecoration(labelText: 'Nouveau mot de passe', prefixIcon: Icon(Icons.key)),
+                      obscureText: true,
+                    ),
+                    const SizedBox(height: 16),
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child: ElevatedButton.icon(
+                        onPressed: _isLoading ? null : _handleChangePassword,
+                        icon: const Icon(Icons.lock_reset),
+                        label: const Text('💾 MODIFIER'),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 24),
+            
+            // ⚙️ Gestion de Compte
+            _buildSectionTitle('⚙️ GESTION DE COMPTE'),
+            Card(
+              child: Column(
+                children: [
+                  ListTile(
+                    leading: const Icon(Icons.description_outlined),
+                    title: const Text('Conditions d\'utilisation'),
+                    trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+                    onTap: () => ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('📜 Conditions à implémenter')),
+                    ),
+                  ),
+                  const Divider(height: 1),
+                  ListTile(
+                    leading: const Icon(Icons.privacy_tip_outlined),
+                    title: const Text('Politique de confidentialité'),
+                    trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+                    onTap: () => ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('🔒 Politique à implémenter')),
+                    ),
+                  ),
+                  const Divider(height: 1),
+                  ListTile(
+                    leading: const Icon(Icons.logout, color: AppConstants.errorRed),
+                    title: const Text('Se déconnecter', style: TextStyle(color: AppConstants.errorRed)),
+                    trailing: const Icon(Icons.arrow_forward_ios, size: 16, color: AppConstants.errorRed),
+                    onTap: _handleLogout,
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 40),
+          ],
+        ),
+      ),
+    );
+  }
+  
+  Widget _buildSectionTitle(String title) {
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: Padding(
+        padding: const EdgeInsets.only(bottom: 12),
+        child: Text(title, style: const TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: AppConstants.primaryGreen)),
+      ),
+    );
+  }
+}
+import 'package:flutter/material.dart';
+import '../widgets/custom_button.dart';
+import '../utils/constants.dart';
+import '../services/auth_service.dart';
+import '../main.dart';
+
+class RegisterScreen extends StatefulWidget {
+  const RegisterScreen({super.key});
+  
+  @override
+  State<RegisterScreen> createState() => _RegisterScreenState();
+}
+
+class _RegisterScreenState extends State<RegisterScreen> {
+  final _formKey = GlobalKey<FormState>();
+  final _nameController = TextEditingController();
+  final _emailController = TextEditingController();
+  final _passwordController = TextEditingController();
+  final _confirmPasswordController = TextEditingController();
+  final _phoneController = TextEditingController();
+  final _authService = AuthService();
+  bool _isLoading = false;
+  bool _obscurePassword = true;
+  bool _obscureConfirmPassword = true;
+  
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _emailController.dispose();
+    _passwordController.dispose();
+    _confirmPasswordController.dispose();
+    _phoneController.dispose();
+    super.dispose();
+  }
+  
+  void _handleRegister() async {
+    if (!_formKey.currentState!.validate()) return;
+    
+    setState(() => _isLoading = true);
+    
+    final result = await _authService.register(
+      name: _nameController.text.trim(),
+      email: _emailController.text.trim(),
+      password: _passwordController.text,
+      phone: _phoneController.text.trim(),
+    );
+    
+    if (mounted) {
+      setState(() => _isLoading = false);
+      
+      if (result['success'] == true) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('✅ ${result['message']}'),
+            backgroundColor: Colors.green,
+            duration: const Duration(seconds: 2),
+          ),
+        );
+        // Connexion automatique après inscription
+        await _authService.login(
+          email: _emailController.text.trim(),
+          password: _passwordController.text,
+        );
+        if (mounted) AppNavigator.goToDashboard(context);
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('❌ ${result['message']}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+  
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: AppConstants.backgroundColor,
+      appBar: AppBar(
+        title: const Text('Créer un compte'),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => Navigator.pop(context),
+        ),
+      ),
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(24),
+          child: Form(
+            key: _formKey,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                const SizedBox(height: 20),
+                Center(
+                  child: Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: AppConstants.primaryGreen.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: const Icon(Icons.eco, size: 48, color: AppConstants.primaryGreen),
+                  ),
+                ),
+                const SizedBox(height: 24),
+                const Text(
+                  'Inscription',
+                  style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 32),
+                
+                // 👤 Nom complet
+                TextFormField(
+                  controller: _nameController,
+                  decoration: const InputDecoration(
+                    labelText: 'Nom complet',
+                    prefixIcon: Icon(Icons.person_outline, color: AppConstants.primaryGreen),
+                  ),
+                  validator: (value) {
+                    if (value == null || value.isEmpty) return 'Nom requis';
+                    if (value.length < 3) return 'Minimum 3 caractères';
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 16),
+                
+                // 📧 Email
+                TextFormField(
+                  controller: _emailController,
+                  keyboardType: TextInputType.emailAddress,
+                  decoration: const InputDecoration(
+                    labelText: 'Adresse email',
+                    prefixIcon: Icon(Icons.email_outlined, color: AppConstants.primaryGreen),
+                  ),
+                  validator: (value) {
+                    if (value == null || value.isEmpty) return 'Email requis';
+                    if (!value.contains('@')) return 'Email invalide';
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 16),
+                
+                // 📱 Téléphone
+                TextFormField(
+                  controller: _phoneController,
+                  keyboardType: TextInputType.phone,
+                  decoration: const InputDecoration(
+                    labelText: 'Téléphone',
+                    prefixIcon: Icon(Icons.phone_outlined, color: AppConstants.primaryGreen),
+                  ),
+                  validator: (value) {
+                    if (value == null || value.isEmpty) return 'Téléphone requis';
+                    if (value.length < 8) return 'Numéro invalide';
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 16),
+                
+                // 🔒 Mot de passe
+                TextFormField(
+                  controller: _passwordController,
+                  obscureText: _obscurePassword,
+                  decoration: InputDecoration(
+                    labelText: 'Mot de passe',
+                    prefixIcon: const Icon(Icons.lock_outline, color: AppConstants.primaryGreen),
+                    suffixIcon: IconButton(
+                      icon: Icon(_obscurePassword ? Icons.visibility_off : Icons.visibility),
+                      onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
+                    ),
+                  ),
+                  validator: (value) {
+                    if (value == null || value.isEmpty) return 'Mot de passe requis';
+                    if (value.length < 6) return 'Minimum 6 caractères';
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 16),
+                
+                // 🔒 Confirmer mot de passe
+                TextFormField(
+                  controller: _confirmPasswordController,
+                  obscureText: _obscureConfirmPassword,
+                  decoration: InputDecoration(
+                    labelText: 'Confirmer mot de passe',
+                    prefixIcon: const Icon(Icons.lock_outline, color: AppConstants.primaryGreen),
+                    suffixIcon: IconButton(
+                      icon: Icon(_obscureConfirmPassword ? Icons.visibility_off : Icons.visibility),
+                      onPressed: () => setState(() => _obscureConfirmPassword = !_obscureConfirmPassword),
+                    ),
+                  ),
+                  validator: (value) {
+                    if (value == null || value.isEmpty) return 'Confirmation requise';
+                    if (value != _passwordController.text) return 'Les mots de passe ne correspondent pas';
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 32),
+                
+                // 🔘 S'INSCRIRE
+                CustomButton(
+                  text: 'S\'INSCRIRE',
+                  onPressed: _handleRegister,
+                  isLoading: _isLoading,
+                  icon: Icons.person_add,
+                ),
+                const SizedBox(height: 24),
+                
+                // 🔗 Déjà un compte
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text('Déjà un compte ?', style: TextStyle(color: Colors.grey[600])),
+                    TextButton(
+                      onPressed: () => Navigator.pop(context),
+                      child: const Text('Se connecter', style: TextStyle(fontWeight: FontWeight.w600)),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+import 'package:flutter/material.dart';
+import '../utils/constants.dart';
+
+class SettingsScreen extends StatefulWidget {
+  const SettingsScreen({super.key});
+  
+  @override
+  State<SettingsScreen> createState() => _SettingsScreenState();
+}
+
+class _SettingsScreenState extends State<SettingsScreen> {
+  double tempMax = 35, soilMin = 30, lightMin = 200;
+  bool alertCritical = true, alertWater = true, alertDoor = true, alertConnection = true;
+  bool vacationMode = false;
+  
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('← Paramètres'),
+        leading: IconButton(icon: const Icon(Icons.arrow_back), onPressed: () => Navigator.pop(context)),
+      ),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // Seuils
+            _buildSectionTitle('⚙️ SEUILS D\'AUTOMATISATION'),
+            _buildSliderCard(
+              icon: Icons.thermostat,
+              title: '🌡️ Température Max',
+              value: tempMax,
+              min: 25,
+              max: 45,
+              unit: '°C',
+              onChanged: (v) => setState(() => tempMax = v),
+            ),
+            _buildSliderCard(
+              icon: Icons.grass,
+              title: '🌱 Humidité Sol Min',
+              value: soilMin,
+              min: 10,
+              max: 50,
+              unit: '%',
+              onChanged: (v) => setState(() => soilMin = v),
+            ),
+            _buildSliderCard(
+              icon: Icons.wb_sunny,
+              title: '☀️ Luminosité Min',
+              value: lightMin,
+              min: 100,
+              max: 500,
+              unit: 'Lux',
+              onChanged: (v) => setState(() => lightMin = v),
+            ),
+            const SizedBox(height: 24),
+            
+            // Notifications
+            _buildSectionTitle('🔔 NOTIFICATIONS'),
+            Card(
+              child: Column(
+                children: [
+                  _buildSwitchTile('Alertes critiques', alertCritical, (v) => setState(() => alertCritical = v)),
+                  _buildSwitchTile('Arrosage effectué', alertWater, (v) => setState(() => alertWater = v)),
+                  _buildSwitchTile('Ouverture de porte', alertDoor, (v) => setState(() => alertDoor = v)),
+                  _buildSwitchTile('Pertes de connexion', alertConnection, (v) => setState(() => alertConnection = v)),
+                ],
+              ),
+            ),
+            const SizedBox(height: 24),
+            
+            // Mode Vacances
+            _buildSectionTitle('🏖️ MODE VACANCES'),
+            Card(
+              child: ListTile(
+                title: const Text('Activation manuelle\nSurveillance renforcée'),
+                trailing: Switch(
+                  value: vacationMode,
+                  onChanged: (v) => setState(() => vacationMode = v),
+                  activeThumbColor: AppConstants.primaryGreen,  // ✅ activeThumbColor (pas activeColor)
+                ),
+              ),
+            ),
+            
+            const SizedBox(height: 40),
+            ElevatedButton.icon(
+              onPressed: _saveSettings,
+              icon: const Icon(Icons.save),
+              label: const Text('💾 ENREGISTRER', style: TextStyle(fontSize: 16)),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppConstants.primaryGreen,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 16),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+  
+  Widget _buildSectionTitle(String title) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Text(
+        title,
+        style: const TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: AppConstants.primaryGreen),
+      ),
+    );
+  }
+  
+  Widget _buildSliderCard({
+    required IconData icon,
+    required String title,
+    required double value,
+    required double min,
+    required double max,
+    required String unit,
+    required ValueChanged<double> onChanged,
+  }) {
+    return Card(
+      margin: const EdgeInsets.only(bottom: 12),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(icon, color: AppConstants.primaryGreen),
+                const SizedBox(width: 12),
+                Text(title, style: const TextStyle(fontWeight: FontWeight.w600)),
+              ],
+            ),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Expanded(
+                  child: Slider(
+                    value: value,
+                    min: min,
+                    max: max,
+                    divisions: (max - min).toInt(),
+                    label: '${value.toInt()}$unit',
+                    activeColor: AppConstants.primaryGreen,
+                    onChanged: onChanged,
+                  ),
+                ),
+                SizedBox(
+                  width: 60,
+                  child: Text(
+                    '${value.toInt()}$unit',
+                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                  ),
+                ),
+              ],
+            ),
+            Text(
+              'Min: ${min.toInt()}$unit | Max: ${max.toInt()}$unit',
+              style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+  
+  Widget _buildSwitchTile(String title, bool value, ValueChanged<bool> onChanged) {
+    return SwitchListTile(
+      title: Text(title),
+      value: value,
+      onChanged: onChanged,
+      activeThumbColor: AppConstants.primaryGreen,  // ✅ activeThumbColor (pas activeColor)
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16),
+    );
+  }
+  
+  void _saveSettings() {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('✅ Paramètres enregistrés !'), backgroundColor: Colors.green),
+    );
+  }
+}
