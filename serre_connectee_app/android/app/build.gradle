@@ -1,0 +1,58 @@
+// ✅ Fichier: android/app/build.gradle
+
+plugins {
+    id "com.android.application"
+    id "kotlin-android"
+    id "dev.flutter.flutter-gradle-plugin"
+    id "com.google.gms.google-services"  // ✅ Firebase Plugin (DOIT ÊTRE ICI)
+}
+
+android {
+    namespace "com.example.serre_connectee_app"
+    compileSdkVersion 34
+    ndkVersion flutter.ndkVersion
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
+
+    kotlinOptions {
+        jvmTarget = '1.8'
+    }
+
+    sourceSets {
+        main.java.srcDirs += 'src/main/kotlin'
+    }
+
+    defaultConfig {
+        applicationId "com.example.serre_connectee_app"
+        minSdkVersion flutter.minSdkVersion  // ✅ Minimum 21, idéalement 23 pour Firebase
+        targetSdkVersion 34
+        versionCode 1
+        versionName "1.0"
+        multiDexEnabled true  // ✅ Important pour Firebase
+    }
+
+    buildTypes {
+        release {
+            signingConfig signingConfigs.debug
+        }
+    }
+}
+
+flutter {
+    source '../..'
+}
+
+dependencies {
+    // ✅ Firebase BOM (Bill of Materials) - Gère les versions automatiquement
+    implementation platform('com.google.firebase:firebase-bom:32.7.0')
+    
+    // ✅ Firebase Dependencies (pas besoin de version avec BOM)
+    implementation 'com.google.firebase:firebase-auth'
+    implementation 'com.google.firebase:firebase-firestore'
+    
+    // ✅ MultiDex pour Android < 5.0
+    implementation 'com.android.support:multidex:1.0.3'
+}

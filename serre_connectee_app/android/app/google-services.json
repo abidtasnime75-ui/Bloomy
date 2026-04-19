@@ -1,0 +1,30 @@
+{
+  "project_info": {
+    "project_number": "506262170260",
+    "firebase_url": "https://bloomy-serre-connectee-default-rtdb.europe-west1.firebasedatabase.app",
+    "project_id": "bloomy-serre-connectee",
+    "storage_bucket": "bloomy-serre-connectee.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:506262170260:android:7543eb6a2d2907672ce281",
+        "android_client_info": {
+          "package_name": "com.example.serre_connectee_app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAZbvfoH5t9RQVX7RAqrypXDfrcWcPHKoo"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
