@@ -46,20 +46,33 @@ Le système est divisé en **trois composantes principales** :
 ##  Structure du Projet
 
 ```
-bloomy/
+Bloomy/
 ├── firmware/
-│   └── pfa-final.ino          # Code Arduino ESP32
-├── app/                        # Application Flutter
-│   ├── lib/
-│   │   ├── models/            # SensorData, ActuatorData
-│   │   ├── viewmodels/        # Logique MVVM
-│   │   └── views/             # Écrans UI
-│   └── pubspec.yaml
-├── assets/
+│   ├── pfa-final.ino          # Code Arduino ESP32 (363 lignes)
+│   ├── cablage .drawio.png    # Schéma de câblage
+│   └── pins.pdf               # Tableau des pins
+├── serre_connectee_app/       # Application Flutter
+│   ├── android/app/
+│   │   ├── build.gradle
+│   │   ├── google-services.json  # Config Firebase (déjà présent)
+│   │   └── src/main/
+│   │         ├── AndroidManifest.xml
+│   │         └── kotlin/com/example/serre_connectee_app/
+│   │               └── MainActivity.kt
+│   ├── assets/images/
+│   │   └── logo_bloomy.png    # Logo de l'application
+│   ├── firebase.json
+│   ├── pubspec.yaml           # Dépendances Flutter
+│   └── pubspec.lock
+├── assets/                    # Ressources documentaires
+│   ├── architecture.png
 │   ├── Block_diagram.png
 │   ├── cas_dutilisation.png
-│   └── Serre-connectée.docx   # Rapport complet
-└── README.md
+│   ├── control.png
+│   └── login.png
+├── prototype/                 # Photos du prototype physique
+└── README.md                  # Documentation complète
+
 ```
 
 ---
@@ -163,26 +176,6 @@ dependencies:
 | Contrôle Manuel | Activation/désactivation pompe, ventilo, LEDs, porte |
 | Alertes | Historique des notifications push |
 | Journal RFID | Qui / quand / combien d'entrées |
-
----
-
-## 🏗️ Architecture Logicielle (MVVM)
-
-```
-View (Flutter UI)
-    │
-    ▼
-ViewModel (Provider)
-    │
-    ▼
-Model (SensorData / ActuatorData)
-    │
-    ▼
-Firebase Service (Firestore REST API)
-    │
-    ▼
-ESP32 ◄──────────────────────────────
-```
 
 ---
 
