@@ -6,15 +6,20 @@ Bloomy est un système IoT complet de gestion de serre agricole connectée. Il c
 
 ---
 
-## 📸 Aperçu
+##  Aperçu
 
 | Écran de connexion | Contrôle Manuel |
 |---|---|
 | ![Login](assets/login.png) | ![Control](assets/control.png) |
 
 ---
+## 🎨 Design UI/UX
 
-## 🧩 Architecture du Système
+> Interface conçue sur Figma avec prototype interactif complet.
+
+[![Figma Design](https://img.shields.io/badge/Figma-Voir%20le%20prototype-F24E1E?style=for-the-badge&logo=figma&logoColor=white)](https://www.figma.com/make/DGyKfKnE46p9pNNWF9Xyeo/Smart-Greenhouse-App?fullscreen=1)
+
+##  Architecture du Système
 
 ```
 ┌─────────────────┐     ┌──────────────────┐     ┌─────────────────┐
@@ -53,7 +58,7 @@ Le système est divisé en **trois composantes principales** :
 
 ---
 
-## ✨ Fonctionnalités
+##  Fonctionnalités
 
 -  **Surveillance en temps réel** — Température, humidité air et humidité du sol
 - **Mode automatique** — Arrosage automatique si sol sec, ventilation si température > 30°C
@@ -65,7 +70,7 @@ Le système est divisé en **trois composantes principales** :
 
 ---
 
-## 🗂️ Structure du Projet
+##  Structure du Projet
 
 ```
 bloomy/
@@ -101,7 +106,7 @@ bloomy/
 
 ---
 
-## ⚙️ Seuils Automatiques
+##  Seuils Automatiques
 
 | Paramètre | Seuil | Action déclenchée |
 |---|---|---|
@@ -109,13 +114,9 @@ bloomy/
 | Humidité sol | > 3000 (brut ADC) | Activation pompe |
 
 ---
-## 🎨 Design UI/UX
 
-> Interface conçue sur Figma avec prototype interactif complet.
 
-[![Figma Design](https://img.shields.io/badge/Figma-Voir%20le%20prototype-F24E1E?style=for-the-badge&logo=figma&logoColor=white)](https://www.figma.com/make/DGyKfKnE46p9pNNWF9Xyeo/Smart-Greenhouse-App?fullscreen=1)
-
-## 🚀 Installation & Configuration
+##  Installation & Configuration
 
 ### 1. Firmware ESP32
 
