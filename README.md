@@ -183,11 +183,11 @@ dependencies:
 
 | Nom | Rôle |
 |---|---|
-| Wala OUAILI | |
-| Ela ALOUI |  |
-| Asma BELLALAH | |
-| Zeineb HENCHIRI |  |
-| Tasnim ABID |  |
+|  OUAILI Wala | |
+| ALOUI Ela |  |
+| BELLALAH Asma | |
+|  HENCHIRI Zeineb |  |
+| ABID Tasnim  |  |
 
 **Encadrant :** Prof. Faouzi MOUSSA  
 **Spécialité :** Licence en Ingénierie des Systèmes Informatiques — 2025/2026
