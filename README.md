@@ -217,10 +217,10 @@ ESP32 ◄───────────────────────�
 
 | Nom | Rôle |
 |---|---|
-| Asma BELLALAH | |
 | Wala OUAILI | |
+| Ela ALOUI |  |
+| Asma BELLALAH | |
 | Zeineb HENCHIRI |  |
-| Ale ALOUI |  |
 | Tasnim ABID |  |
 
 **Encadrant :** Prof. Faouzi MOUSSA  
