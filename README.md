@@ -77,7 +77,7 @@ bloomy/
 │   │   ├── viewmodels/        # Logique MVVM
 │   │   └── views/             # Écrans UI
 │   └── pubspec.yaml
-├── docs/
+├── assets/
 │   ├── Block_diagram.png
 │   ├── cas_dutilisation.png
 │   └── Serre-connectée.docx   # Rapport complet
